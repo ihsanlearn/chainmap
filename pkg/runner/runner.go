@@ -186,10 +186,29 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 	outputFile := filepath.Join(outputDir, fmt.Sprintf("%s.xml", safeHostName))
 
 	flagsStr := r.options.NmapFlags
-	if flagsStr == "" {
-		// Use recommended defaults if no flags provided
-		flagsStr = "-sV -T3 --version-intensity 5 -Pn -n"
-		// flagsStr = "--privileged -sS -sV -sC --version-all --script vuln,default --open --reason -Pn -p 8080,8443,443,80"
+
+	// Prioritize flags based on mode: Deep > Fast > User/Default
+	if r.options.DeepMode {
+		if os.Geteuid() != 0 {
+			logger.Warn("Deep Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
+		}
+		// Deep Mode: -sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n
+		flagsStr = "-sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n"
+		if !r.options.Silent {
+			logger.Info("Using Deep Scan Mode")
+		}
+	} else if r.options.FastMode {
+		if os.Geteuid() != 0 {
+			logger.Warn("Fast Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
+		}
+		// Fast Mode: -sS -sV -T3 --open -Pn -n
+		flagsStr = "-sS -sV -T3 --open -Pn -n"
+		if !r.options.Silent {
+			logger.Info("Using Fast Scan Mode")
+		}
+	} else if flagsStr == "" {
+		// Use recommended defaults if no mode and no manual flags provided
+		flagsStr = "-sV -sS -T3 -Pn -n"
 	}
 
 	args, err := shlex.Split(flagsStr)

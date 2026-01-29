@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE nmaprun>
-<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
-<!-- Nmap 7.94SVN scan initiated Thu Jan 29 19:49:21 2026 as: nmap -oX ahh.xml -&#45;privileged -sS -sV -sC -&#45;version-all -&#45;script vuln,default -&#45;open -&#45;reason -Pn -p 8080,8443,443,80 scanme.nmap.org -->
-<nmaprun scanner="nmap" args="nmap -oX ahh.xml -&#45;privileged -sS -sV -sC -&#45;version-all -&#45;script vuln,default -&#45;open -&#45;reason -Pn -p 8080,8443,443,80 scanme.nmap.org" start="1769690961" startstr="Thu Jan 29 19:49:21 2026" version="7.94SVN" xmloutputversion="1.05">
-<scaninfo type="syn" protocol="tcp" numservices="4" services="80,443,8080,8443"/>

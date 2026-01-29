@@ -16,6 +16,8 @@ type Options struct {
 	Silent     bool
 	Version    bool
 	OutputFile string
+	FastMode   bool
+	DeepMode   bool
 }
 
 const Version = "1.0.0"
@@ -37,6 +39,8 @@ func ParseOptions() *Options {
 		flagSet.IntVarP(&opts.Timeout, "timeout", "T", 10, "Timeout in minutes"),
 		flagSet.StringVarP(&opts.NmapFlags, "nmap-flags", "n", "", "Nmap flags to use"),
 		flagSet.StringVarP(&opts.OutputFile, "output", "o", "results.xml", "File to store merged XML results"),
+		flagSet.BoolVarP(&opts.FastMode, "fast", "", false, "Fast Scan Mode"),
+		flagSet.BoolVarP(&opts.DeepMode, "deep", "", false, "Deep Scan Mode"),
 	)
 
 	flagSet.CreateGroup("misc", "Optimization",
