@@ -1,0 +1,63 @@
+package options
+
+import (
+	"os"
+
+	"github.com/ihsanlearn/chainmap/logger"
+	"github.com/projectdiscovery/goflags"
+)
+
+type Options struct {
+	InputList  string
+	Target     string
+	NmapFlags  string
+	Threads    int
+	Timeout    int
+	Silent     bool
+	Version    bool
+	OutputFile string
+}
+
+const Version = "1.0.0"
+
+func ParseOptions() *Options {
+	opts := &Options{}
+
+	flagSet := goflags.NewFlagSet()
+
+	flagSet.SetDescription("Chainmap is a modular Nmap workflow tool")
+
+	flagSet.CreateGroup("input", "Input",
+		flagSet.StringVarP(&opts.InputList, "list", "l", "", "Input file containing list of IPs"),
+		flagSet.StringVarP(&opts.Target, "target", "t", "", "Single target IP"),
+	)
+
+	flagSet.CreateGroup("config", "Configuration",
+		flagSet.IntVarP(&opts.Threads, "threads", "c", 5, "Number of concurrent threads"),
+		flagSet.IntVarP(&opts.Timeout, "timeout", "T", 10, "Timeout in minutes"),
+		flagSet.StringVarP(&opts.NmapFlags, "nmap-flags", "n", "", "Nmap flags to use"),
+		flagSet.StringVarP(&opts.OutputFile, "output", "o", "results.xml", "File to store merged XML results"),
+	)
+
+	flagSet.CreateGroup("misc", "Optimization",
+		flagSet.BoolVarP(&opts.Silent, "silent", "s", false, "Silent mode"),
+		flagSet.BoolVarP(&opts.Version, "version", "V", false, "Display application version"),
+	)
+
+	if err := flagSet.Parse(); err != nil {
+		logger.Error("Failed parsing flags: %s", err)
+		os.Exit(1)
+	}
+
+	if opts.Version {
+		logger.Info("Chainmap v%s", Version)
+		os.Exit(0)
+	}
+
+	// Check if we have any input (stdin, file, or args)
+	// Note: Args for single IP are handled in logic, but we should ensure at least one input method is present
+	// OR we will show help. However, `goflags` handles bare arguments separately.
+	// We will validate input availability in runner or main.
+
+	return opts
+}
