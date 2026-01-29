@@ -9,7 +9,6 @@ import (
 	"github.com/ihsanlearn/chainmap/logger"
 )
 
-// GenerateSummary reads the unified XML output and prints a summary
 func GenerateSummary(outputFile string) {
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		logger.Info("No result file found at %s", outputFile)

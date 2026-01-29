@@ -58,10 +58,6 @@ func ParseOptions() *Options {
 		os.Exit(0)
 	}
 
-	// Check if we have any input (stdin, file, or args)
-	// Note: Args for single IP are handled in logic, but we should ensure at least one input method is present
-	// OR we will show help. However, `goflags` handles bare arguments separately.
-	// We will validate input availability in runner or main.
 
 	return opts
 }

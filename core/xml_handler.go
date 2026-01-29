@@ -9,7 +9,6 @@ import (
 	"github.com/lair-framework/go-nmap"
 )
 
-// NmapData holds simplified data for reporting
 type NmapData struct {
 	Host     string
 	Ports    []PortInfo
@@ -24,9 +23,7 @@ type PortInfo struct {
 	State    string
 }
 
-// ParseXML reads an Nmap XML file and extracts relevant data
 func ParseXML(path string) (*nmap.NmapRun, error) {
-	// check if file exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -44,7 +41,6 @@ func ParseXML(path string) (*nmap.NmapRun, error) {
 	return &result, nil
 }
 
-// MergeXMLs combines multiple Nmap XML files into one
 func MergeXMLs(inputs []string, output string) error {
 	var merged *nmap.NmapRun
 	var totalElapsed float64
@@ -62,7 +58,6 @@ func MergeXMLs(inputs []string, output string) error {
 		} else {
 			merged.Hosts = append(merged.Hosts, run.Hosts...)
 
-			// Update Stats
 			merged.RunStats.Hosts.Up += run.RunStats.Hosts.Up
 			merged.RunStats.Hosts.Down += run.RunStats.Hosts.Down
 			merged.RunStats.Hosts.Total += run.RunStats.Hosts.Total
@@ -75,7 +70,6 @@ func MergeXMLs(inputs []string, output string) error {
 		return fmt.Errorf("no valid XML data to merge")
 	}
 
-	// Update total time
 	merged.RunStats.Finished.Elapsed = float32(totalElapsed)
 
 	data, err := xml.MarshalIndent(merged, "", "  ")
@@ -83,7 +77,6 @@ func MergeXMLs(inputs []string, output string) error {
 		return err
 	}
 
-	// Use offline stylesheet
 	header := `<?xml version="1.0" encoding="UTF-8"?>` + "\n" +
 		`<?xml-stylesheet href="nmap.xsl" type="text/xsl"?>` + "\n"
 

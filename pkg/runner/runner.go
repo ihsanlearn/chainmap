@@ -39,7 +39,6 @@ func (r *Runner) CheckDependencies() error {
 func (r *Runner) Run() {
 	var rawLines []string
 
-	// 1. Gather Inputs
 	if r.options.InputList != "" {
 		fileTargets, err := readLines(r.options.InputList)
 		if err != nil {
@@ -67,12 +66,9 @@ func (r *Runner) Run() {
 		return
 	}
 
-	// 2. Parse and Group
-	// map[host] -> []ports
 	targets := core.ParseTargets(rawLines)
 	logger.Info("Found %d unique targets from %d inputs", len(targets), len(rawLines))
 
-	// 2. Temp Directory for XMLs
 	tempDir, err := os.MkdirTemp("", "chainmap-scans")
 	if err != nil {
 		logger.Error("Failed to create temporary directory: %s", err)
@@ -80,11 +76,9 @@ func (r *Runner) Run() {
 	}
 	defer os.RemoveAll(tempDir) // Cleanup on exit
 
-	// 3. Worker Pool
 	jobs := make(chan string, len(targets))
 	var wg sync.WaitGroup
 
-	// Start Workers
 	for i := 0; i < r.options.Threads; i++ {
 		wg.Add(1)
 		go func() {
@@ -96,7 +90,6 @@ func (r *Runner) Run() {
 		}()
 	}
 
-	// Send Jobs
 	for host := range targets {
 		jobs <- host
 	}
@@ -104,7 +97,6 @@ func (r *Runner) Run() {
 
 	wg.Wait()
 
-	// 4. Merge Results
 	xmlFiles, err := filepath.Glob(filepath.Join(tempDir, "*.xml"))
 	if err != nil {
 		logger.Error("Failed to list scan results: %s", err)
@@ -112,27 +104,20 @@ func (r *Runner) Run() {
 	}
 
 	if len(xmlFiles) > 0 {
-		// Initialize output names
 		xmlOutput := r.options.OutputFile
 		htmlOutput := ""
 		generateHTML := false
 
-		// Check if xsltproc exists
 		_, xsltErr := exec.LookPath("xsltproc")
 
-		// Handle output filenames logic
 		if strings.HasSuffix(strings.ToLower(xmlOutput), ".html") {
-			// User requested HTML file
 			htmlOutput = xmlOutput
-			// Use a distinct intermediate XML filename
 			xmlOutput = strings.TrimSuffix(xmlOutput, filepath.Ext(xmlOutput)) + ".xml"
 			generateHTML = (xsltErr == nil)
 			if xsltErr != nil {
 				logger.Warn("Output file is .html but xsltproc not found. Falling back to XML output at %s", xmlOutput)
 			}
 		} else {
-			// User requested XML (or other)
-			// If xsltproc exists, we generate HTML sidecar
 			if xsltErr == nil {
 				htmlOutput = strings.TrimSuffix(xmlOutput, filepath.Ext(xmlOutput)) + ".html"
 				generateHTML = true
@@ -145,29 +130,23 @@ func (r *Runner) Run() {
 		} else {
 			logger.Success("Merged results saved to %s", xmlOutput)
 
-			// Generate Summary from the XML (must be done before cleanup)
 			report.GenerateSummary(xmlOutput)
 
-			// 5. Generate HTML Report
 			if generateHTML && htmlOutput != "" {
 				logger.Info("Generating HTML report: %s", htmlOutput)
 
-				// Write Embedded XSLT
 				if err := os.WriteFile("nmap.xsl", []byte(core.DefaultXSLT), 0644); err != nil {
 					logger.Warn("Failed to write embedded nmap.xsl, using defaults: %s", err)
 				}
 
-				// Run xsltproc
 				cmd := exec.Command("xsltproc", "-o", htmlOutput, "nmap.xsl", xmlOutput)
 				if err := cmd.Run(); err != nil {
 					logger.Error("Failed to generate HTML report: %s", err)
 				} else {
 					logger.Success("HTML report saved to %s", htmlOutput)
 
-					// Cleanup: keep raw XML as requested by user for debugging
 					logger.Info("Keeping raw XML file for debugging: %s", xmlOutput)
 
-					// Cleanup: Remove temporary nmap.xsl
 					_ = os.Remove("nmap.xsl")
 				}
 			}
@@ -178,9 +157,6 @@ func (r *Runner) Run() {
 }
 
 func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
-	// Construct Ports String
-	// If ports slice has empty string, it means raw host input.
-	// Join all non-empty ports.
 	var validPorts []string
 	for _, p := range ports {
 		if p != "" {
@@ -197,19 +173,16 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 		}
 	}
 
-	// 1. Determine Output Filename
 	safeHostName := strings.ReplaceAll(host, ".", "_")
 	safeHostName = strings.ReplaceAll(safeHostName, ":", "_") // Handle ipv6 if needed
 	outputFile := filepath.Join(outputDir, fmt.Sprintf("%s.xml", safeHostName))
 
 	flagsStr := r.options.NmapFlags
 
-	// Prioritize flags based on mode: Deep > Fast > User/Default
 	if r.options.DeepMode {
 		if os.Geteuid() != 0 {
 			logger.Warn("Deep Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
 		}
-		// Deep Mode: -sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n --host-timeout 5m
 		flagsStr = "-sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n --host-timeout 5m"
 		if !r.options.Silent {
 			logger.Info("Using Deep Scan Mode")
@@ -218,13 +191,11 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 		if os.Geteuid() != 0 {
 			logger.Warn("Fast Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
 		}
-		// Fast Mode: -sS -sV -T4 --top-ports 1000 -n -Pn --open --host-timeout 5m
 		flagsStr = "-sS -sV -T4 --top-ports 1000 -n -Pn --open --host-timeout 5m"
 		if !r.options.Silent {
 			logger.Info("Using Fast Scan Mode")
 		}
 	} else if flagsStr == "" {
-		// Use recommended defaults if no mode and no manual flags provided
 		flagsStr = "-sV -sS -T3 -Pn -n --host-timeout 5m"
 	}
 
@@ -238,26 +209,19 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 		return
 	}
 
-	// Add XML Output Flags
 	args = append(args, "-oX", outputFile, "--webxml")
 
-	// Add Port Flag if we have specific ports
 	if len(validPorts) > 0 {
 		args = append(args, "-p", portFlag)
 	}
 
 	args = append(args, host)
 
-	// Context with Timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(r.options.Timeout)*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "nmap", args...)
 
-	// Silent execution - do not pipe to stdout
-	// If verbose/debug mode existed, we might pipe stderr, but for now we keep it clean.
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
@@ -266,8 +230,6 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 			logger.Error("Error scanning %s: %s", host, err)
 		}
 	} else {
-		// Only log success if successful
-		// logger.Success("Scan complete for %s", host) // Less noise
 	}
 }
 
