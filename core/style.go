@@ -139,11 +139,30 @@ const DefaultXSLT = `<?xml version="1.0" encoding="UTF-8"?>
             padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--border);
             font-size: 0.875rem;
+            vertical-align: top;
           }
           tr:last-child td { border-bottom: none; }
           .port-open { color: var(--success); font-weight: 600; }
           .port-closed { color: var(--danger); }
           .port-filtered { color: var(--warning); }
+          
+          .script-output {
+            margin-top: 0.5rem;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            color: #334155;
+          }
+          .script-id {
+            color: #475569;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: block;
+          }
           
         </style>
       </head>
@@ -196,10 +215,10 @@ const DefaultXSLT = `<?xml version="1.0" encoding="UTF-8"?>
                   <table>
                     <thead>
                       <tr>
-                        <th>Port</th>
-                        <th>State</th>
-                        <th>Service</th>
-                        <th>Version</th>
+                        <th style="width: 15%">Port</th>
+                        <th style="width: 15%">State</th>
+                        <th style="width: 30%">Service</th>
+                        <th style="width: 40%">Version / Scripts</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -218,20 +237,38 @@ const DefaultXSLT = `<?xml version="1.0" encoding="UTF-8"?>
                                 <span class="badge badge-danger"><xsl:value-of select="state/@state"/></span>
                               </xsl:otherwise>
                             </xsl:choose>
+                            <xsl:if test="state/@reason">
+                              <div style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">
+                                <xsl:value-of select="state/@reason"/>
+                                <xsl:if test="state/@reason_ttl">
+                                  (ttl <xsl:value-of select="state/@reason_ttl"/>)
+                                </xsl:if>
+                              </div>
+                            </xsl:if>
                           </td>
                           <td style="color: var(--accent); font-weight: 500;">
                             <xsl:value-of select="service/@name"/>
                           </td>
                           <td style="color: var(--text-light);">
-                            <xsl:value-of select="service/@product"/>
-                            <xsl:if test="service/@version">
-                              v<xsl:value-of select="service/@version"/>
-                            </xsl:if>
-                            <xsl:if test="service/@extrainfo">
-                              <span style="font-size: 0.8em; margin-left: 4px; opacity: 0.8">
-                                (<xsl:value-of select="service/@extrainfo"/>)
-                              </span>
-                            </xsl:if>
+                            <div>
+                              <xsl:value-of select="service/@product"/>
+                              <xsl:if test="service/@version">
+                                v<xsl:value-of select="service/@version"/>
+                              </xsl:if>
+                              <xsl:if test="service/@extrainfo">
+                                <span style="font-size: 0.8em; margin-left: 4px; opacity: 0.8">
+                                  (<xsl:value-of select="service/@extrainfo"/>)
+                                </span>
+                              </xsl:if>
+                            </div>
+
+                            <!-- Script Outputs -->
+                            <xsl:for-each select="script">
+                              <div class="script-output">
+                                <span class="script-id"><xsl:value-of select="@id"/></span>
+                                <xsl:value-of select="@output"/>
+                              </div>
+                            </xsl:for-each>
                           </td>
                         </tr>
                       </xsl:for-each>

@@ -1,5 +1,5 @@
 chainmap
-*.xml
-*.html
+# *.xml
+# *.html
 *.nmap
 *.txt

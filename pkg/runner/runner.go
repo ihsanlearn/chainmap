@@ -15,6 +15,7 @@ import (
 	"github.com/ihsanlearn/chainmap/core"
 	"github.com/ihsanlearn/chainmap/logger"
 	"github.com/ihsanlearn/chainmap/options"
+	"github.com/ihsanlearn/chainmap/pkg/report"
 )
 
 type Runner struct {
@@ -111,49 +112,65 @@ func (r *Runner) Run() {
 	}
 
 	if len(xmlFiles) > 0 {
-		logger.Info("Merging %d scan results into %s", len(xmlFiles), r.options.OutputFile)
-		if err := core.MergeXMLs(xmlFiles, r.options.OutputFile); err != nil {
+		// Initialize output names
+		xmlOutput := r.options.OutputFile
+		htmlOutput := ""
+		generateHTML := false
+
+		// Check if xsltproc exists
+		_, xsltErr := exec.LookPath("xsltproc")
+
+		// Handle output filenames logic
+		if strings.HasSuffix(strings.ToLower(xmlOutput), ".html") {
+			// User requested HTML file
+			htmlOutput = xmlOutput
+			// Use a distinct intermediate XML filename
+			xmlOutput = strings.TrimSuffix(xmlOutput, filepath.Ext(xmlOutput)) + ".xml"
+			generateHTML = (xsltErr == nil)
+			if xsltErr != nil {
+				logger.Warn("Output file is .html but xsltproc not found. Falling back to XML output at %s", xmlOutput)
+			}
+		} else {
+			// User requested XML (or other)
+			// If xsltproc exists, we generate HTML sidecar
+			if xsltErr == nil {
+				htmlOutput = strings.TrimSuffix(xmlOutput, filepath.Ext(xmlOutput)) + ".html"
+				generateHTML = true
+			}
+		}
+
+		logger.Info("Merging %d scan results into %s", len(xmlFiles), xmlOutput)
+		if err := core.MergeXMLs(xmlFiles, xmlOutput); err != nil {
 			logger.Error("Failed to merge XML results: %s", err)
 		} else {
-			logger.Success("Merged results saved to %s", r.options.OutputFile)
+			logger.Success("Merged results saved to %s", xmlOutput)
+
+			// Generate Summary from the XML (must be done before cleanup)
+			report.GenerateSummary(xmlOutput)
 
 			// 5. Generate HTML Report
-			if _, err := exec.LookPath("xsltproc"); err == nil {
-				htmlFile := strings.TrimSuffix(r.options.OutputFile, filepath.Ext(r.options.OutputFile)) + ".html"
-				logger.Info("Generating HTML report: %s", htmlFile)
+			if generateHTML && htmlOutput != "" {
+				logger.Info("Generating HTML report: %s", htmlOutput)
 
 				// Write Embedded XSLT
 				if err := os.WriteFile("nmap.xsl", []byte(core.DefaultXSLT), 0644); err != nil {
 					logger.Warn("Failed to write embedded nmap.xsl, using defaults: %s", err)
 				}
 
-				// Always use local nmap.xsl (we just wrote it)
-				cmd := exec.Command("xsltproc", "-o", htmlFile, "nmap.xsl", r.options.OutputFile)
+				// Run xsltproc
+				cmd := exec.Command("xsltproc", "-o", htmlOutput, "nmap.xsl", xmlOutput)
 				if err := cmd.Run(); err != nil {
 					logger.Error("Failed to generate HTML report: %s", err)
 				} else {
-					logger.Success("HTML report saved to %s", htmlFile)
+					logger.Success("HTML report saved to %s", htmlOutput)
 
-					// Cleanup: Remove raw XML as requested by user
-					if err := os.Remove(r.options.OutputFile); err != nil {
-						logger.Warn("Failed to remove raw XML file: %s", err)
-					} else {
-						logger.Info("Removed raw XML file (keeping only HTML)")
-					}
+					// Cleanup: keep raw XML as requested by user for debugging
+					logger.Info("Keeping raw XML file for debugging: %s", xmlOutput)
 
-					// Cleanup: Remove temporary nmap.xsl if we created it
+					// Cleanup: Remove temporary nmap.xsl
 					_ = os.Remove("nmap.xsl")
 				}
 			}
-
-			// Note: We no longer ignore nmap.xsl copying logic here
-			// because we handle it inside the HTML block above by creating it momentarily.
-			// Actually, for cleaner offline HTML (since we deleted XML),
-			// the HTML *embedded* the style or referenced it?
-			// xsltproc usually embeds the result structure.
-			// BUT, if we want the XML to be viewable (we deleted it though), we'd need nmap.xsl.
-			// Since we act on HTML, let's ensure we write the style first.
-
 		}
 	} else {
 		logger.Info("No scan results to merge")
@@ -173,11 +190,11 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 	portFlag := strings.Join(validPorts, ",")
 
 	if !r.options.Silent {
-		msg := fmt.Sprintf("Scanning %s", host)
 		if len(validPorts) > 0 {
-			msg += fmt.Sprintf(" with ports: %s", portFlag)
+			logger.Info("Scanning %s with ports: %s", host, portFlag)
+		} else {
+			logger.Info("Scanning %s", host)
 		}
-		logger.Info(msg)
 	}
 
 	// 1. Determine Output Filename
@@ -192,8 +209,8 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 		if os.Geteuid() != 0 {
 			logger.Warn("Deep Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
 		}
-		// Deep Mode: -sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n
-		flagsStr = "-sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n"
+		// Deep Mode: -sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n --host-timeout 5m
+		flagsStr = "-sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n --host-timeout 5m"
 		if !r.options.Silent {
 			logger.Info("Using Deep Scan Mode")
 		}
@@ -201,14 +218,18 @@ func (r *Runner) scanTarget(host string, ports []string, outputDir string) {
 		if os.Geteuid() != 0 {
 			logger.Warn("Fast Mode uses SYN scan (-sS) which requires root privileges. Scan may fail or degrade.")
 		}
-		// Fast Mode: -sS -sV -T3 --open -Pn -n
-		flagsStr = "-sS -sV -T3 --open -Pn -n"
+		// Fast Mode: -sS -sV -T4 --top-ports 1000 -n -Pn --open --host-timeout 5m
+		flagsStr = "-sS -sV -T4 --top-ports 1000 -n -Pn --open --host-timeout 5m"
 		if !r.options.Silent {
 			logger.Info("Using Fast Scan Mode")
 		}
 	} else if flagsStr == "" {
 		// Use recommended defaults if no mode and no manual flags provided
-		flagsStr = "-sV -sS -T3 -Pn -n"
+		flagsStr = "-sV -sS -T3 -Pn -n --host-timeout 5m"
+	}
+
+	if !r.options.Silent {
+		logger.Info("Target %s flags: %s", host, flagsStr)
 	}
 
 	args, err := shlex.Split(flagsStr)

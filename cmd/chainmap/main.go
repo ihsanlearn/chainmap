@@ -5,7 +5,6 @@ import (
 
 	"github.com/ihsanlearn/chainmap/logger"
 	"github.com/ihsanlearn/chainmap/options"
-	"github.com/ihsanlearn/chainmap/pkg/report"
 	"github.com/ihsanlearn/chainmap/pkg/runner"
 )
 
@@ -19,5 +18,4 @@ func main() {
 	}
 
 	r.Run()
-	report.GenerateSummary(opts.OutputFile)
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"net"
 	"strings"
 )
 
@@ -9,7 +8,7 @@ import (
 // Input format expected: IP:PORT or IP (domain also supported).
 // Returns map[target][]ports
 func ParseTargets(lines []string) map[string][]string {
-	results := make(map[string][]string)
+	targets := make(map[string][]string)
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -17,24 +16,21 @@ func ParseTargets(lines []string) map[string][]string {
 			continue
 		}
 
-		host, port, err := net.SplitHostPort(line)
-		if err != nil {
-			// Possibly just host/ip without port
-			// Or invalid format. We assume it's a host if Split fails but string is not empty.
-			// Check if it looks like an IP or Domain
-			// We treat 'line' as host, port string is empty.
-			// net.SplitHostPort returns error if no port is present.
-			results[line] = append(results[line], "")
-			continue
+		if strings.Contains(line, ":") {
+			parts := strings.Split(line, ":")
+			if len(parts) >= 2 {
+				ip := parts[0]
+				port := parts[1]
+				// Dedup check could be added here if needed, but append is fast.
+				// Simplest logic as requested by user.
+				targets[ip] = append(targets[ip], port)
+			}
+		} else {
+			// pure IP/Host, explicit empty slice if not exists
+			if _, exists := targets[line]; !exists {
+				targets[line] = []string{}
+			}
 		}
-
-		results[host] = append(results[host], port)
 	}
-
-	// Dedup ports?
-	// Nmap handles comma separation, but deduping is cleaner.
-	// For now, simple append is consistent with requirements.
-	// The requirement says "Mengelompokkannya berdasarkan IP unik".
-
-	return results
+	return targets
 }

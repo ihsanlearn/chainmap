@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="nmap.xsl" type="text/xsl"?>
+<NmapRun scanner="nmap" args="nmap -sS -sV -sC --script vulners --reason --version-all -T4 -Pn -n --host-timeout 5m -oX /tmp/chainmap-scans3416530728/104_20_17_141.xml --webxml -p 80,443 104.20.17.141" start="1769694512" startstr="Thu Jan 29 20:48:32 2026" version="7.94SVN" profile_name="" xmloutputversion="1.05">
+  <scaninfo type="syn" protocol="tcp" numservices="2" services="80,443" scanflags=""></scaninfo>
+  <verbose level="0"></verbose>
+  <debugging level="0"></debugging>
+  <prescript></prescript>
+  <postscript></postscript>
+  <host starttime="1769694512" endtime="1769694525" comment="">
+    <status state="up" reason="user-set" reason_ttl="0"></status>
+    <address addr="104.20.17.141" addrtype="ipv4" vendor=""></address>
+    <hostnames></hostnames>
+    <ports>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack" reason_ttl="57" reason_ip=""></state>
+        <owner name=""></owner>
+        <service name="http" conf="10" method="probed" version="" product="Cloudflare http proxy" extrainfo="" tunnel="" proto="" rpcnum="" lowver="" hiver="" hostname="" ostype="" devicetype="" servicefp=""></service>
+        <script id="http-server-header" output="cloudflare">
+          <elem key="">cloudflare</elem>
+        </script>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack" reason_ttl="57" reason_ip=""></state>
+        <owner name=""></owner>
+        <service name="https" conf="10" method="probed" version="" product="cloudflare" extrainfo="" tunnel="ssl" proto="" rpcnum="" lowver="" hiver="" hostname="" ostype="" devicetype="" servicefp=""></service>
+        <script id="http-server-header" output="cloudflare">
+          <elem key="">cloudflare</elem>
+        </script>
+      </port>
+    </ports>
+    <os></os>
+    <distance value="0"></distance>
+    <uptime seconds="0" lastboot=""></uptime>
+    <tcpsequence index="0" difficulty="" vaules=""></tcpsequence>
+    <ipidsequence class="" values=""></ipidsequence>
+    <tcptssequence class="" values=""></tcptssequence>
+    <hostscript></hostscript>
+    <trace proto="" port="0"></trace>
+    <times srtt="16128" rttvar="12117" to="100000"></times>
+  </host>
+  <host starttime="1769694512" endtime="1769694531" comment="">
+    <status state="up" reason="user-set" reason_ttl="0"></status>
+    <address addr="104.90.6.169" addrtype="ipv4" vendor=""></address>
+    <hostnames></hostnames>
+    <ports>
+      <port protocol="tcp" portid="80">
+        <state state="open" reason="syn-ack" reason_ttl="52" reason_ip=""></state>
+        <owner name=""></owner>
+        <service name="http" conf="10" method="probed" version="" product="AkamaiGHost" extrainfo="Akamai&#39;s HTTP Acceleration/Mirror service" tunnel="" proto="" rpcnum="" lowver="" hiver="" hostname="" ostype="" devicetype="" servicefp=""></service>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack" reason_ttl="53" reason_ip=""></state>
+        <owner name=""></owner>
+        <service name="http" conf="10" method="probed" version="" product="AkamaiGHost" extrainfo="Akamai&#39;s HTTP Acceleration/Mirror service" tunnel="ssl" proto="" rpcnum="" lowver="" hiver="" hostname="" ostype="" devicetype="" servicefp=""></service>
+      </port>
+    </ports>
+    <os></os>
+    <distance value="0"></distance>
+    <uptime seconds="0" lastboot=""></uptime>
+    <tcpsequence index="0" difficulty="" vaules=""></tcpsequence>
+    <ipidsequence class="" values=""></ipidsequence>
+    <tcptssequence class="" values=""></tcptssequence>
+    <hostscript></hostscript>
+    <trace proto="" port="0"></trace>
+    <times srtt="215856" rttvar="162076" to="864160"></times>
+  </host>
+  <runstats>
+    <finished time="1769694525" timestr="Thu Jan 29 20:48:45 2026" elapsed="32.96" summary="Nmap done at Thu Jan 29 20:48:45 2026; 1 IP address (1 host up) scanned in 13.02 seconds" exit="success" errormsg=""></finished>
+    <hosts up="2" down="0" total="2"></hosts>
+  </runstats>
+</NmapRun>
