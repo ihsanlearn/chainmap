@@ -38,7 +38,7 @@ chainmap -l targets.txt
 cat targets.txt | chainmap -threads 10
 ```
 
-**Custom Nmap Flags:**
+**Custom Nmap Flags**
 
 ```bash
 chainmap -l targets.txt -n "-sC -sV"
