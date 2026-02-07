@@ -1,67 +1,111 @@
-# Chainmap
+<h1 align="center">
+  Chainmap
+  <br>
+</h1>
 
-**Chainmap** is a modular Nmap workflow tool designed to "Do one thing and do it well, then pipe it." usage philosophy. It is optimized for chaining with tools like `naabu` or `httpx`.
+<h4 align="center">A modular, high-performance Nmap workflow orchestrator designed for automation pipelines.</h4>
 
-## Core Philosophy
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#scan-modes">Scan Modes</a> •
+  <a href="#workflow-integration">Workflow Integration</a>
+</p>
 
-1.  **Input Module**: Accepts inputs from stdin or file (supports `IP:PORT` format).
-2.  **Parser Module**: Groups inputs by unique IP to minimize Nmap execution overhead (e.g., `1.1.1.1:80` and `1.1.1.1:443` becomes `1.1.1.1 -p 80,443`).
-3.  **Concurrency Engine**: Uses a Worker Pool to manage load and stability.
-4.  **Execution Module**: Runs optimized Nmap scans.
+---
+
+**Chainmap** is built on the philosophy of "Do one thing and do it well, then pipe it." It serves as the bridge between target discovery tools (like `subfinder`, `naabu`, `httpx`) and the deep scanning capabilities of Nmap.
+
+Instead of sequentially scanning targets one by one, Chainmap intelligently groups inputs and utilizes a worker pool to execute multiple Nmap instances in parallel, significantly reducing scan times for large target lists.
 
 ## Features
 
-- **Smart Grouping**: Automatically groups ports for the same IP.
-- **Worker Pool**: Control concurrency with `-threads`.
-- **Safety**: Built-in timeout management (`-timeout`).
-- **Flexible Input**: Handles `IP`, `Domain`, and `IP:PORT` formats seamlessly.
+- **Smart Target Parsing**: Automatically handles `IP`, `Domain`, and `IP:PORT` formats.
+- **Intelligent Grouping**: Consolidates multiple ports for the same IP into a single Nmap command (e.g., `1.1.1.1:80` + `1.1.1.1:443` -> `nmap 1.1.1.1 -p 80,443`).
+- **Concurrency Control**: Configurable worker pool to manage load and network stability.
+- **Optimized Scan Modes**: Built-in presets for `Fast` triage and `Deep` inspection.
+- **Unified Reporting**: Merges individual XML results into a single comprehensive report (XML & HTML).
+- **Resilience**: Built-in timeout management to prevent stalled scans.
 
 ## Installation
+
+Ensure you have **Go 1.21+** installed.
 
 ```bash
 go install github.com/ihsanlearn/chainmap/cmd/chainmap@latest
 ```
 
+### Dependencies
+
+Chainmap requires `nmap` to be installed and available in your system's PATH.
+
+- **Optional**: `xsltproc` is required for generating HTML reports.
+
 ## Usage
 
-### Basic Usage
+```bash
+chainmap -h
+```
 
-**Scan a list of targets (IP:PORT or IP):**
+### Basic Scans
+
+**Scan a single target:**
 
 ```bash
-chainmap -l targets.txt
+sudo chainmap -t 192.168.1.10
 ```
 
-**Pipe from other tools:**
+**Scan a list of targets (File):**
 
 ```bash
-cat targets.txt | chainmap -threads 10
+sudo chainmap -l targets.txt
 ```
 
-**Custom Nmap Flags**
+**Scan via Stdin (Pipeline):**
 
 ```bash
-chainmap -l targets.txt -n "-sC -sV"
+cat targets.txt | sudo chainmap
 ```
 
-### Options
+### Scan Modes
 
-```
-Flags:
-INPUT:
-   -l, -list string    Input file containing list of IPs/IP:PORT
-   -t, -target string  Single target IP
+**Fast Mode (`-fast`)**
+Ideal for quick triage. Uses aggressive timing, limited port range (Top 1000), and skips host discovery.
+_Requires root privileges for SYN scan._
 
-CONFIGURATION:
-   -c, -threads int        Number of concurrent threads (default 5)
-   -T, -timeout int        Timeout in minutes (default 10)
-   -n, -nmap-flags string  Nmap flags to use (default "-sV -T3 --version-intensity 5 -Pn -n")
-
-OPTIMIZATION:
-   -s, -silent           Silent mode
-   -V, -version          Display application version
+```bash
+sudo chainmap -l targets.txt -fast
 ```
 
-## Requirements
+**Deep Mode (`-deep`)**
+Comprehensive auditing. Enables version detection (`-sV`), default scripts (`-sC`), and OS detection.
+_Requires root privileges for SYN scan._
 
-- **Nmap**: Ensure `nmap` is installed and available in your system's PATH.
+```bash
+sudo chainmap -l targets.txt -deep
+```
+
+### Advanced Configuration
+
+| Flag              | Description                                | Default       |
+| :---------------- | :----------------------------------------- | :------------ |
+| `-c, -threads`    | Number of concurrent Nmap instances        | `5`           |
+| `-T, -timeout`    | Timeout per scan in minutes                | `10`          |
+| `-o, -output`     | Output file path (supports .xml and .html) | `results.xml` |
+| `-n, -nmap-flags` | Custom Nmap flags (overrides modes)        | _Dynamic_     |
+| `-s, -silent`     | Suppress standard output logs              | `false`       |
+
+## Workflow Integration
+
+Chainmap shines when integrated into bug bounty or pentest workflows.
+
+**Example: Discovery to Scan Pipeline**
+
+```bash
+subfinder -d example.com | httpx -ports 80,443,8080 -ip | awk '{print $1}' | sudo chainmap -fast -o triage.html
+```
+
+## License
+
+This project is licensed under the MIT License.
