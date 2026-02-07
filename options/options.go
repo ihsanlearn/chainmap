@@ -30,7 +30,7 @@ func ParseOptions() *Options {
 	flagSet.SetDescription("Chainmap is a modular Nmap workflow tool")
 
 	flagSet.CreateGroup("input", "Input",
-		flagSet.StringVarP(&opts.InputList, "list", "l", "", "Input file containing list of IPs"),
+		flagSet.StringVarP(&opts.InputList, "list", "l", "", "Input file containing list of IPs "),
 		flagSet.StringVarP(&opts.Target, "target", "t", "", "Single target IP"),
 	)
 

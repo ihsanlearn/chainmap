@@ -74,7 +74,7 @@ func (r *Runner) Run() {
 		logger.Error("Failed to create temporary directory: %s", err)
 		return
 	}
-	defer os.RemoveAll(tempDir) // Cleanup on exit
+	defer os.RemoveAll(tempDir)
 
 	jobs := make(chan string, len(targets))
 	var wg sync.WaitGroup

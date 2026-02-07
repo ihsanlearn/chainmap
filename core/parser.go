@@ -18,7 +18,17 @@ func ParseTargets(lines []string) map[string][]string {
 			if len(parts) >= 2 {
 				ip := parts[0]
 				port := parts[1]
-				targets[ip] = append(targets[ip], port)
+
+				exists := false
+				for _, p := range targets[ip] {
+					if p == port {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					targets[ip] = append(targets[ip], port)
+				}
 			}
 		} else {
 			if _, exists := targets[line]; !exists {
