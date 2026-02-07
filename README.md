@@ -103,7 +103,7 @@ Chainmap shines when integrated into bug bounty or pentest workflows.
 **Example: Discovery to Scan Pipeline**
 
 ```bash
-subfinder -d example.com | httpx -ports 80,443,8080 -ip | awk '{print $1}' | sudo chainmap -fast -o triage.html
+subfinder -d example.com | httpx -ports 80,443,8080 -ip | awk '{print $n}' | sudo chainmap -fast -o triage.html
 ```
 
 ## License
