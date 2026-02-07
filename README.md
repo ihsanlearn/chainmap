@@ -106,6 +106,13 @@ Chainmap shines when integrated into bug bounty or pentest workflows.
 subfinder -d example.com | httpx -ports 80,443,8080 -ip | awk '{print $n}' | sudo chainmap -fast -o triage.html
 ```
 
+**Example: Port Discovery with Naabu**
+Naabu outputs `ip:port` format which Chainmap natively supports, making it a perfect pair.
+
+```bash
+naabu -host example.com -p - -silent | sudo chainmap -fast -o naabu_results.html
+```
+
 ## License
 
 This project is licensed under the MIT License.
